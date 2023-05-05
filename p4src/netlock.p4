@@ -25,7 +25,8 @@ control MyIngress(inout headers hdr,
 
 //-------------------------------------DATA-------------------------------------
     // each slot in the queue contains client ip address
-    register<bit<32>>(QueueSize) lock_queue;
+    register<bit<32>>(QueueSize) lock_queue_ip;
+    register<bit<16>>(QueueSize) lock_queue_udp;
    
     bit<1> lock_status;
     bit<32> head = 0;   // Next up in the queue (first taken slot)
@@ -53,13 +54,15 @@ control MyIngress(inout headers hdr,
     }
 
     action push_queue() {
-        lock_queue.write(tail, hdr.ipv4.srcAddr);
+        lock_queue_ip.write(tail, hdr.ipv4.srcAddr);
+        lock_queue_udp.write(tail, hdr.udp.srcPort);
         tail = (tail + 1) % QueueSize;
     }
 
     action pop_queue() {
         // zero out current head and then increment head
-        lock_queue.write(head, (bit<32>)0);
+        lock_queue_ip.write(head, (bit<32>)0);
+        lock_queue_udp.write(head, (bit<16>)0);
         ++head;
     }
 
@@ -74,14 +77,30 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.dstAddr = tmp;
     }
 
-    action grant_to_next() {
+    // Host knows it is granted the lock by looking at the udp source port
+    action swap_udp() {
+        bit<16> tmp;
+        tmp = hdr.udp.srcAddr;
+        hdr.udp.srcAddr = hdr.udp.dstAddr;
+        hdr.udp.dstAddr = hdr.udp.srcAddr;
+    }
+
+    action set_next_ip() {
         // look up ip address from head
         bit<32> hostAddr;
-        queue.read(hostAddr, head);
+        lock_queue_ip.read(hostAddr, head);
 
         // then set ip addresses to send to the next host
         hdr.ipv4.srcAddr = hdr.ipv4.dstAddr;
         hdr.ipv4.dstAddr = hostAddr;
+    }
+
+    action set_next_udp() {
+        bit<16> hostPort;
+        lock_queue_udp.read(hostPort, head);
+
+        hdr.udp.srcPort = hdr.udp.dstPort;
+        hdr.udp.dstPort = hostPort;
     }
 
 
@@ -115,6 +134,7 @@ control MyIngress(inout headers hdr,
                         lock_status = SET;
                         remove_netlock();
                         swap_ip();
+                        swap_udp();
                     }
                     // Otherwise add host ip address to queue
                     else {
@@ -127,9 +147,10 @@ control MyIngress(inout headers hdr,
                     if (head == tail) {
                         lock_status = UNSET;
                     }
-                    // Otherwise, grant the lock to next host in queue
+                    // Otherwise, send a message to next host in queue, granting the lock
                     else {
-                        grant_to_next();
+                        set_next_ip();
+                        swap_udp();
                         pop_queue();
                         remove_netlock();
                     }

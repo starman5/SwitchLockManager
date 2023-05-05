@@ -3,7 +3,8 @@
 *************************************************************************/
 
 const bit<16> TYPE_IPV4 = 0x800;
-const bit<16> TYPE_NETLOCK = 0x7777
+const bit<16> TYPE_NETLOCK = 0x7777;
+const bit<16> PORT_NETLOCK = 7777;
 
 // Netlock actions
 const bit<1> ACQUIRE = 0;

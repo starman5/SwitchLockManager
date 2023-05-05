@@ -3,6 +3,15 @@
 *************************************************************************/
 
 const bit<16> TYPE_IPV4 = 0x800;
+const bit<16> TYPE_NETLOCK = 0x7777
+
+// Netlock actions
+const bit<1> ACQUIRE = 0;
+const bit<1> RELEASE = 1;
+
+// Lock statuses
+const bit<1> SET = 0;
+const bit<1> UNSET = 1;
 
 typedef bit<9>  egressSpec_t;
 typedef bit<48> macAddr_t;
@@ -13,6 +22,11 @@ header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
+}
+
+header netlock_t {
+    bit<16> lock_id;
+    bit<1> action;
 }
 
 header ipv4_t {
@@ -51,15 +65,21 @@ header tcp_t{
     bit<16> urgentPtr;
 }
 
+header udp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> len;
+    bit<16> checksum;
+}
+
 struct metadata {
-    bit<14> ecmp_hash;
-    bit<14> ecmp_group_id;
+
 }
 
 struct headers {
     ethernet_t   ethernet;
+    netlock_t    netlock;
     ipv4_t       ipv4;
-    ipv4_t       ipv4_encap;
-    tcp_t        tcp;
+    udp_t        udp;
 }
 

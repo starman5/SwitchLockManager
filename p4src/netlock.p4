@@ -77,7 +77,6 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.dstAddr = tmp;
     }
 
-    // Host knows it is granted the lock by looking at the udp source port
     action swap_udp() {
         bit<16> tmp;
         tmp = hdr.udp.srcAddr;
@@ -127,9 +126,9 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
 
-            if (hdr.netlock.isValid()) {                
+            if (hdr.netlock.isValid() && hdr.udp.isValid()) {                
                 if (hdr.netlock.action == ACQUIRE) {
-                    // If lock is unset, set it and prepare response for host
+                    // If lock is unset, set it and prepare response back to host
                     if (lock_status == UNSET) {
                         lock_status = SET;
                         remove_netlock();
@@ -150,7 +149,7 @@ control MyIngress(inout headers hdr,
                     // Otherwise, send a message to next host in queue, granting the lock
                     else {
                         set_next_ip();
-                        swap_udp();
+                        set_next_udp();
                         pop_queue();
                         remove_netlock();
                     }

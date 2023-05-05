@@ -25,17 +25,16 @@ control MyIngress(inout headers hdr,
 
 //-------------------------------------DATA-------------------------------------
     // each slot in the queue contains client ip address
-    register<bit<32>>(8192) lock_queue;
+    register<bit<32>>(QueueSize) lock_queue;
    
     bit<1> lock_status;
-    bit<32> head = 0;   // First taken spot in the queue
+    bit<32> head = 0;   // Next up in the queue (first taken slot)
     bit<32> tail = 0;   // Next available slot in the queue
 
 
 
 //------------------------------------ACTIONS------------------------------------
-    // set next hop
-    // port: the egress port for this packet
+
     action set_nhop(macAddr_t dstAddr, egressSpec_t port) {
         //set the src mac address as the previous dst, this is not correct right?
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
@@ -54,11 +53,19 @@ control MyIngress(inout headers hdr,
     }
 
     action push_queue() {
-        my_register.write
+        lock_queue.write(tail, hdr.ipv4.srcAddr);
+        tail = (tail + 1) % QueueSize;
+    }
+
+    action pop_queue() {
+        // zero out current head and then increment head
+        lock_queue.write(head, (bit<32>)0);
+        ++head;
     }
 
     action remove_netlock() {
-
+        hdr.netlock.setInvalid();
+        hdr.ethernet.etherType = TYPE_IPV4;
     }
 
     action swap_ip() {
@@ -67,19 +74,27 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.dstAddr = tmp;
     }
 
+    action grant_to_next() {
+        // look up ip address from head
+        bit<32> hostAddr;
+        queue.read(hostAddr, head);
+
+        // then set ip addresses to send to the next host
+        hdr.ipv4.srcAddr = hdr.ipv4.dstAddr;
+        hdr.ipv4.dstAddr = hostAddr;
+    }
+
 
 
 //---------------------------------------TABLES------------------------------------
     // This table maps dstAddr to ecmp_group_id and num_nhops (the number of total output ports). The action ecmp_group is actually calculating the hash value.
     table ipv4_lpm {
-        //TODO: define the ip forwarding table
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
 
         actions = {
             set_nhop;
-            ecmp_group;
             drop;
             NoAction;
         }
@@ -91,23 +106,32 @@ control MyIngress(inout headers hdr,
 
 //-------------------------------------------APPLY--------------------------------
     apply {
-        if (hdr.ipv4.isValid()) {    
-            if (hdr.netlock.isValid()) {
-                
-                if (hdr.action == ACQUIRE) {
+        if (hdr.ipv4.isValid()) {
+
+            if (hdr.netlock.isValid()) {                
+                if (hdr.netlock.action == ACQUIRE) {
+                    // If lock is unset, set it and prepare response for host
                     if (lock_status == UNSET) {
                         lock_status = SET;
                         remove_netlock();
                         swap_ip();
                     }
+                    // Otherwise add host ip address to queue
                     else {
                         push_queue();
                     }
                 }
                 
                 else {
-                    if (head != tail) {
+                    // If queue is empty, unset the lock
+                    if (head == tail) {
+                        lock_status = UNSET;
+                    }
+                    // Otherwise, grant the lock to next host in queue
+                    else {
+                        grant_to_next();
                         pop_queue();
+                        remove_netlock();
                     }
                 }
             }

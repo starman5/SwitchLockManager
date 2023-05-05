@@ -13,6 +13,8 @@ const bit<1> RELEASE = 1;
 const bit<1> SET = 0;
 const bit<1> UNSET = 1;
 
+const bit<32> QueueSize = 8192;
+
 typedef bit<9>  egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;

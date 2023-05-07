@@ -1050,12 +1050,9 @@ control MyIngress(inout headers hdr,
     // each slot in the queue contains client ip address
     register<bit<32>>(QueueSize) lock_queue_ip;
     register<bit<16>>(QueueSize) lock_queue_udp;
-    register<bit<1>>(1) lock_statuses;
-
-
-    bit<32> head = 0; // Next up in the queue (first taken slot)
-    bit<32> tail = 0; // Next available slot in the queue
-
+    register<bit<1>>(8192) lock_statuses;
+    register<bit<32>>(8192) queue_heads;
+    register<bit<32>>(8192) queue_tails;
 
 
 //------------------------------------ACTIONS------------------------------------
@@ -1078,16 +1075,23 @@ control MyIngress(inout headers hdr,
     }
 
     action push_queue() {
+        bit<32> tail;
+        queue_tails.read(tail, (bit<32>)0);
         lock_queue_ip.write(tail, hdr.ipv4.srcAddr);
         lock_queue_udp.write(tail, hdr.udp.srcPort);
         tail = (tail + 1) % QueueSize;
+        queue_tails.write((bit<32>)0, tail);
     }
 
     action pop_queue() {
         // zero out current head and then increment head
+        bit<32> head;
+        queue_heads.read(head, (bit<32>)0);
+
         lock_queue_ip.write(head, (bit<32>)0);
         lock_queue_udp.write(head, (bit<16>)0);
         head = (head + 1) % QueueSize;
+        queue_heads.write((bit<32>)0, head);
     }
 
     action remove_netlock() {
@@ -1110,6 +1114,8 @@ control MyIngress(inout headers hdr,
 
     action set_next_ip() {
         // look up ip address from head
+        bit<32> head;
+        queue_heads.read(head, (bit<32>)0);
         bit<32> hostAddr;
         lock_queue_ip.read(hostAddr, head);
 
@@ -1120,6 +1126,8 @@ control MyIngress(inout headers hdr,
 
     action set_next_udp() {
         bit<16> hostPort;
+        bit<32> head;
+        queue_heads.read(head, (bit<32>)0);
         lock_queue_udp.read(hostPort, head);
 
         hdr.udp.srcPort = hdr.udp.dstPort;
@@ -1151,26 +1159,33 @@ control MyIngress(inout headers hdr,
         if (hdr.ipv4.isValid()) {
 
             if (hdr.netlock.isValid() && hdr.udp.isValid()) {
-                if (hdr.netlock.act == ACQUIRE) {
+                if (hdr.netlock.act == 0) {
                     // If lock is unset, set it and prepare response back to host
                     bit<1> current_status;
                     lock_statuses.read(current_status, (bit<32>)0);
                     if (current_status == UNSET) {
                         lock_statuses.write((bit<32>)0, SET);
-                        remove_netlock();
+                        //remove_netlock();
                         swap_ip();
                         swap_udp();
                     }
                     // Otherwise add host ip address to queue
                     else {
                         push_queue();
+                        drop();
                     }
                 }
 
                 else {
                     // If queue is empty, unset the lock
+                    bit<32> head;
+                    bit<32> tail;
+                    queue_heads.read(head, (bit<32>)0);
+                    queue_tails.read(tail, (bit<32>)0);
                     if (head == tail) {
+                        // There is nothing in the queue to grant the lock to.
                         lock_statuses.write((bit<32>)0, UNSET);
+                        drop();
                     }
                     // Otherwise, send a message to next host in queue, granting the lock
                     else {

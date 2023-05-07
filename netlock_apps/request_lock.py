@@ -8,7 +8,7 @@ import socket
 import random
 import struct
 
-from scapy.all import sendp, get_if_list, get_if_hwaddr, Ether, IP, UDP, TCP, Packet, BitField
+from scapy.all import sendp, get_if_list, get_if_hwaddr, get_if_addr, Ether, IP, UDP, TCP, Packet, BitField
 import time
 
 ACQUIRE = 0
@@ -50,12 +50,11 @@ def main():
         print("more args")
         exit(1)
 
-    addr = socket.gethostbyname(sys.argv[1])
+    srcaddr = socket.gethostbyname(sys.argv[1])
+    dstaddr = socket.gethostbyname(sys.argv[2])
     iface = get_if()
-    print("Hello")
     pkt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff', type=0x7777) / LockHeader(lock_id=0, action=ACQUIRE)
-    pkt = pkt / IP(dst=addr) / UDP(dport=7777, sport=random.randint(2000,65535))
-    print(pkt)
+    pkt = pkt / IP(src=srcaddr, dst=dstaddr) / UDP(dport=7777, sport=random.randint(2000,65535))
     sendp(pkt, iface=iface, verbose=False)
 
 if __name__ == '__main__':

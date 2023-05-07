@@ -1165,7 +1165,7 @@ control MyIngress(inout headers hdr,
                     lock_statuses.read(current_status, (bit<32>)0);
                     if (current_status == UNSET) {
                         lock_statuses.write((bit<32>)0, SET);
-                        //remove_netlock();
+                        remove_netlock();
                         swap_ip();
                         swap_udp();
                     }

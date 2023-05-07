@@ -1,5 +1,6 @@
 """
 This client sends a packet to acquire the lock.
+Run with netlock_apps/request_lock.py [source ip address], [destination ip address]
 """
 
 import argparse
@@ -47,7 +48,7 @@ def get_if():
 def main():
 
     if len(sys.argv) < 2:
-        print("more args")
+        print("Args: [Source ip address], [destination ip address]")
         exit(1)
 
     srcaddr = socket.gethostbyname(sys.argv[1])

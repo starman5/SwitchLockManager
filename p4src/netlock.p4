@@ -149,7 +149,7 @@ control MyIngress(inout headers hdr,
                     // Otherwise add host ip address to queue
                     else {
                         push_queue();
-                        drop();
+                        remove_netlock();
                     }
                 }
                 
@@ -162,7 +162,7 @@ control MyIngress(inout headers hdr,
                     if (head == tail) {
                         // There is nothing in the queue to grant the lock to.
                         lock_statuses.write((bit<32>)0, UNSET);
-                        drop();
+                        remove_netlock();
                     }
                     // Otherwise, send a message to next host in queue, granting the lock
                     else {

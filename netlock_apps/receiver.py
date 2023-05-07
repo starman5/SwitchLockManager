@@ -32,7 +32,7 @@ def isNotOutgoing(my_mac):
 
 def handle_pkt(pkt):
     udp = pkt.getlayer(UDP)
-    if udp.sport == 7777:
+    if udp and udp.sport == 7777:
         print("acquired lock")
 
 def main():

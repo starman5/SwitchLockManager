@@ -1,11 +1,11 @@
-from p4utils.utils.topology import Topology
-from p4utils.utils.sswitch_API import SimpleSwitchAPI
+from p4utils.utils.helper import load_topo
+from p4utils.utils.sswitch_thrift_API import SimpleSwitchThriftAPI
 
 class RoutingController(object):
 
     def __init__(self):
 
-        self.topo = Topology(db="topology.db")
+        self.topo = load_topo("topology.json")
         self.controllers = {}
         self.init()
 
@@ -20,7 +20,7 @@ class RoutingController(object):
     def connect_to_switches(self):
         for p4switch in self.topo.get_p4switches():
             thrift_port = self.topo.get_thrift_port(p4switch)
-            self.controllers[p4switch] = SimpleSwitchAPI(thrift_port)
+            self.controllers[p4switch] = SimpleSwitchThriftAPI(thrift_port)
 
     def set_table_defaults(self):
         for controller in self.controllers.values():
@@ -28,12 +28,10 @@ class RoutingController(object):
 
     
     def route(self):
-        for host in self.topo.get_hosts_connected_to(sw_name):
-            sw_port = self.topo.node_to_node_port_num(sw_name, host)
-            host_ip = self.topo.get_host_ip(host) + "/32"
-            host_mac = self.topo.get_host_mac(host)
-
-            controller.table_add("ipv4_lpm", "set_nhop", [str(host_ip)], [str(host_mac), str(sw_port)])
+        for sw_name, controller in self.controllers.items():
+            controller.table_add("ipv4_lpm", "set_nhop", ["10.1.1.2/32"], ["00:00:0a:01:01:02", "1"])
+            controller.table_add("ipv4_lpm", "set_nhop", ["10.1.2.2/32"], ["00:00:0a:01:02:02", "2"])
+            controller.table_add("ipv4_lpm", "set_nhop", ["10.1.3.2/32"], ["00:00:0a:01:03:02", "3"])
 
     
     def main(self):

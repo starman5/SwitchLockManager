@@ -24,21 +24,25 @@ control MyIngress(inout headers hdr,
                 
 
 //-------------------------------------DATA-------------------------------------
-    // each slot in the queue contains client ip address
+    
+    // These are the arrays we need to implement queueing of requests
+    // Each slot in the ip queue contains client ip address
+    // Each slot in the udp queue contains the client udp port
     register<bit<32>>(QueueSize) lock_queue_ip;
     register<bit<16>>(QueueSize) lock_queue_udp;
+
+    // These contain the current head and tail of the circular queue
+    register<bit<32>>(1) queue_heads;
+    register<bit<32>>(1) queue_tails;
     
-    // Contains whether or not the lock is already held or not
+    // Contains whether or not the lock is already held.
     register<bit<1>>(1) lock_statuses;
 
-    // Contains the ip address of the host that currently has the lock
+    // Stores the ip address of the host that currently has the lock
     // We need this so that we don't wrongfully release the lock if a different
     // host sends a release message
     register<bit<32>>(1) acquired_ip;
    
-    // Contains the current head and tail of the queue
-    register<bit<32>>(1) queue_heads;
-    register<bit<32>>(1) queue_tails;
 
 
 //------------------------------------ACTIONS------------------------------------
@@ -60,6 +64,8 @@ control MyIngress(inout headers hdr,
         mark_to_drop(standard_metadata);
     }
 
+    // Get the current tail.  Read the ip address and udp port that is next in the queue, at
+    // the tail.  Update the tail.
     action push_queue() {
         bit<32> tail;
         queue_tails.read(tail, (bit<32>)0);
@@ -69,6 +75,7 @@ control MyIngress(inout headers hdr,
         queue_tails.write((bit<32>)0, tail);
     }
 
+    // Get the current head.  Zero out the queue at the head.  Increment the head. 
     action pop_queue() {
         // zero out current head and then increment head
         bit<32> head;
@@ -85,12 +92,16 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.etherType = TYPE_IPV4;
     }
 
+    // This is for sending a message back to the host, if that host can immediately
+    // grab the lock
     action swap_ip() {
         ip4Addr_t tmp = hdr.ipv4.srcAddr;
         hdr.ipv4.srcAddr = hdr.ipv4.dstAddr;
         hdr.ipv4.dstAddr = tmp;
     }
 
+    // This is for sending a message back to the host, if that host can immediately
+    // grab the lock
     action swap_udp() {
         bit<16> tmp;
         tmp = hdr.udp.srcPort;
@@ -98,6 +109,9 @@ control MyIngress(inout headers hdr,
         hdr.udp.dstPort = hdr.udp.srcPort;
     }
 
+    // Grab the ip address of the next request in the queue, and make this the destination
+    // IP address of the packet.  This is to prepare to send a message to the next host in
+    // the queue.
     action set_next_ip() {
         // look up ip address from head
         bit<32> head;
@@ -113,6 +127,7 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.dstAddr = hostAddr;
     }
 
+    // Same as above, but with udp port
     action set_next_udp() {
         bit<16> hostPort;
         bit<32> head;
@@ -148,7 +163,7 @@ control MyIngress(inout headers hdr,
         if (hdr.ipv4.isValid()) {
 
             if (hdr.netlock.isValid() && hdr.udp.isValid()) {                
-                if (hdr.netlock.act == 0) {
+                if (hdr.netlock.act == ACQUIRE) {
                     // If lock is unset, set it and prepare response back to host
                     bit<1> current_status;
                     lock_statuses.read(current_status, (bit<32>)0);

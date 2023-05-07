@@ -11,8 +11,8 @@ const bit<2> ACQUIRE = 0;
 const bit<2> RELEASE = 1;
 
 // Lock statuses
-const bit<1> SET = 0;
-const bit<1> UNSET = 1;
+const bit<1> UNSET = 0;
+const bit<1> SET = 1;
 
 const bit<32> QueueSize = 8192;
 

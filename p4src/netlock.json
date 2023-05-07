@@ -6,7 +6,9 @@
       "fields" : [
         ["head_0", 32, false],
         ["tail_0", 32, false],
-        ["tmp_0", 32, false]
+        ["tmp_0", 32, false],
+        ["current_status_0", 1, false],
+        ["_padding_0", 7, false]
       ]
     },
     {
@@ -383,6 +385,18 @@
       },
       "size" : 8192,
       "bitwidth" : 16
+    },
+    {
+      "name" : "MyIngress.lock_statuses",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "/home/p4/project7/p4src/netlock.p4",
+        "line" : 30,
+        "column" : 24,
+        "source_fragment" : "lock_statuses"
+      },
+      "size" : 1,
+      "bitwidth" : 1
     }
   ],
   "calculations" : [
@@ -391,7 +405,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "/home/p4/project7/p4src/netlock.p4",
-        "line" : 185,
+        "line" : 188,
         "column" : 1,
         "source_fragment" : "update_checksum( ..."
       },
@@ -484,7 +498,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 41,
+            "line" : 42,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.srcAddr = hdr.ethernet.dstAddr"
           }
@@ -503,7 +517,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 44,
+            "line" : 45,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.dstAddr = dstAddr"
           }
@@ -522,7 +536,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 46,
+            "line" : 47,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = port"
           }
@@ -564,7 +578,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 49,
+            "line" : 50,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.ttl = hdr.ipv4.ttl - 1"
           }
@@ -586,7 +600,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 53,
+            "line" : 54,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -594,8 +608,61 @@
       ]
     },
     {
-      "name" : "MyIngress.remove_netlock",
+      "name" : "MyIngress.push_queue",
       "id" : 3,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "MyIngress.lock_queue_ip"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tail_0"]
+            },
+            {
+              "type" : "field",
+              "value" : ["ipv4", "srcAddr"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 58,
+            "column" : 8,
+            "source_fragment" : "lock_queue_ip.write(tail, hdr.ipv4.srcAddr)"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "MyIngress.lock_queue_udp"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tail_0"]
+            },
+            {
+              "type" : "field",
+              "value" : ["udp", "srcPort"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 59,
+            "column" : 8,
+            "source_fragment" : "lock_queue_udp.write(tail, hdr.udp.srcPort)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "MyIngress.remove_netlock",
+      "id" : 4,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -608,7 +675,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 70,
+            "line" : 71,
             "column" : 8,
             "source_fragment" : "hdr.netlock.setInvalid()"
           }
@@ -636,7 +703,7 @@
     },
     {
       "name" : "MyIngress.swap_ip",
-      "id" : 4,
+      "id" : 5,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -653,7 +720,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 75,
+            "line" : 76,
             "column" : 8,
             "source_fragment" : "ip4Addr_t tmp = hdr.ipv4.srcAddr;"
           }
@@ -672,7 +739,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 76,
+            "line" : 77,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.srcAddr = hdr.ipv4.dstAddr"
           }
@@ -691,7 +758,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 77,
+            "line" : 78,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.dstAddr = tmp"
           }
@@ -700,7 +767,7 @@
     },
     {
       "name" : "MyIngress.swap_udp",
-      "id" : 5,
+      "id" : 6,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -717,7 +784,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 83,
+            "line" : 84,
             "column" : 8,
             "source_fragment" : "hdr.udp.srcPort = hdr.udp.dstPort"
           }
@@ -725,8 +792,98 @@
       ]
     },
     {
-      "name" : "netlock32",
-      "id" : 6,
+      "name" : "netlock136",
+      "id" : 7,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "MyIngress.lock_statuses"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 136,
+            "column" : 24,
+            "source_fragment" : "lock_statuses.write((bit<32>)0, SET)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "netlock134",
+      "id" : 8,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "current_status_0"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "MyIngress.lock_statuses"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 134,
+            "column" : 20,
+            "source_fragment" : "lock_statuses.read(current_status, (bit<32>)0)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "netlock150",
+      "id" : 9,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "MyIngress.lock_statuses"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00"
+            }
+          ],
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 150,
+            "column" : 24,
+            "source_fragment" : "lock_statuses.write((bit<32>)0, UNSET)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "netlock33",
+      "id" : 10,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -743,7 +900,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 32,
+            "line" : 33,
             "column" : 4,
             "source_fragment" : "bit<32> head = 0;"
           }
@@ -762,7 +919,7 @@
           ],
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 33,
+            "line" : 34,
             "column" : 4,
             "source_fragment" : "bit<32> tail = 0;"
           }
@@ -780,14 +937,14 @@
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
-      "init_table" : "tbl_netlock32",
+      "init_table" : "tbl_netlock33",
       "tables" : [
         {
-          "name" : "tbl_netlock32",
+          "name" : "tbl_netlock33",
           "id" : 0,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 32,
+            "line" : 33,
             "column" : 4,
             "source_fragment" : "bit<32> head = 0; // Next up in the queue (first taken slot) ..."
           },
@@ -798,14 +955,72 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [6],
-          "actions" : ["netlock32"],
+          "action_ids" : [10],
+          "actions" : ["netlock33"],
           "base_default_next" : "node_3",
           "next_tables" : {
-            "netlock32" : "node_3"
+            "netlock33" : "node_3"
           },
           "default_entry" : {
-            "action_id" : 6,
+            "action_id" : 10,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_netlock134",
+          "id" : 1,
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 134,
+            "column" : 20,
+            "source_fragment" : "lock_statuses.read(current_status, (bit<32>)0)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [8],
+          "actions" : ["netlock134"],
+          "base_default_next" : "node_7",
+          "next_tables" : {
+            "netlock134" : "node_7"
+          },
+          "default_entry" : {
+            "action_id" : 8,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_netlock136",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 136,
+            "column" : 24,
+            "source_fragment" : "lock_statuses.write((bit<32>)0, SET)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [7],
+          "actions" : ["netlock136"],
+          "base_default_next" : "tbl_remove_netlock",
+          "next_tables" : {
+            "netlock136" : "tbl_remove_netlock"
+          },
+          "default_entry" : {
+            "action_id" : 7,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -813,10 +1028,10 @@
         },
         {
           "name" : "tbl_remove_netlock",
-          "id" : 1,
+          "id" : 3,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 134,
+            "line" : 137,
             "column" : 24,
             "source_fragment" : "remove_netlock()"
           },
@@ -827,14 +1042,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [3],
+          "action_ids" : [4],
           "actions" : ["MyIngress.remove_netlock"],
           "base_default_next" : "tbl_swap_ip",
           "next_tables" : {
             "MyIngress.remove_netlock" : "tbl_swap_ip"
           },
           "default_entry" : {
-            "action_id" : 3,
+            "action_id" : 4,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -842,10 +1057,10 @@
         },
         {
           "name" : "tbl_swap_ip",
-          "id" : 2,
+          "id" : 4,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 135,
+            "line" : 138,
             "column" : 24,
             "source_fragment" : "swap_ip()"
           },
@@ -856,14 +1071,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [4],
+          "action_ids" : [5],
           "actions" : ["MyIngress.swap_ip"],
           "base_default_next" : "tbl_swap_udp",
           "next_tables" : {
             "MyIngress.swap_ip" : "tbl_swap_udp"
           },
           "default_entry" : {
-            "action_id" : 4,
+            "action_id" : 5,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -871,10 +1086,10 @@
         },
         {
           "name" : "tbl_swap_udp",
-          "id" : 3,
+          "id" : 5,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 136,
+            "line" : 139,
             "column" : 24,
             "source_fragment" : "swap_udp()"
           },
@@ -885,14 +1100,72 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [5],
+          "action_ids" : [6],
           "actions" : ["MyIngress.swap_udp"],
           "base_default_next" : "MyIngress.ipv4_lpm",
           "next_tables" : {
             "MyIngress.swap_udp" : "MyIngress.ipv4_lpm"
           },
           "default_entry" : {
-            "action_id" : 5,
+            "action_id" : 6,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_push_queue",
+          "id" : 6,
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 143,
+            "column" : 24,
+            "source_fragment" : "push_queue()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [3],
+          "actions" : ["MyIngress.push_queue"],
+          "base_default_next" : "MyIngress.ipv4_lpm",
+          "next_tables" : {
+            "MyIngress.push_queue" : "MyIngress.ipv4_lpm"
+          },
+          "default_entry" : {
+            "action_id" : 3,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_netlock150",
+          "id" : 7,
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 150,
+            "column" : 24,
+            "source_fragment" : "lock_statuses.write((bit<32>)0, UNSET)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [9],
+          "actions" : ["netlock150"],
+          "base_default_next" : "MyIngress.ipv4_lpm",
+          "next_tables" : {
+            "netlock150" : "MyIngress.ipv4_lpm"
+          },
+          "default_entry" : {
+            "action_id" : 9,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -900,10 +1173,10 @@
         },
         {
           "name" : "MyIngress.ipv4_lpm",
-          "id" : 4,
+          "id" : 8,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 109,
+            "line" : 110,
             "column" : 10,
             "source_fragment" : "ipv4_lpm"
           },
@@ -944,7 +1217,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 127,
+            "line" : 128,
             "column" : 12,
             "source_fragment" : "hdr.ipv4.isValid()"
           },
@@ -967,7 +1240,7 @@
           "id" : 1,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 129,
+            "line" : 130,
             "column" : 16,
             "source_fragment" : "hdr.netlock.isValid() && hdr.udp.isValid()"
           },
@@ -1007,7 +1280,7 @@
           "id" : 2,
           "source_info" : {
             "filename" : "/home/p4/project7/p4src/netlock.p4",
-            "line" : 130,
+            "line" : 131,
             "column" : 20,
             "source_fragment" : "hdr.netlock.act == ACQUIRE"
           },
@@ -1025,8 +1298,34 @@
               }
             }
           },
-          "true_next" : "tbl_remove_netlock",
-          "false_next" : "MyIngress.ipv4_lpm"
+          "true_next" : "tbl_netlock134",
+          "false_next" : "tbl_netlock150"
+        },
+        {
+          "name" : "node_7",
+          "id" : 3,
+          "source_info" : {
+            "filename" : "/home/p4/project7/p4src/netlock.p4",
+            "line" : 135,
+            "column" : 24,
+            "source_fragment" : "current_status == UNSET"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "current_status_0"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x00"
+              }
+            }
+          },
+          "true_next" : "tbl_netlock136",
+          "false_next" : "tbl_push_queue"
         }
       ]
     },
@@ -1035,7 +1334,7 @@
       "id" : 1,
       "source_info" : {
         "filename" : "/home/p4/project7/p4src/netlock.p4",
-        "line" : 171,
+        "line" : 174,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },
@@ -1051,7 +1350,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "/home/p4/project7/p4src/netlock.p4",
-        "line" : 185,
+        "line" : 188,
         "column" : 1,
         "source_fragment" : "update_checksum( ..."
       },

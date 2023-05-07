@@ -27,8 +27,9 @@ control MyIngress(inout headers hdr,
     // each slot in the queue contains client ip address
     register<bit<32>>(QueueSize) lock_queue_ip;
     register<bit<16>>(QueueSize) lock_queue_udp;
-   
-    bit<1> lock_status = UNSET;
+    register<bit<1>>(1) lock_statuses;
+
+
     bit<32> head = 0;   // Next up in the queue (first taken slot)
     bit<32> tail = 0;   // Next available slot in the queue
 
@@ -129,8 +130,10 @@ control MyIngress(inout headers hdr,
             if (hdr.netlock.isValid() && hdr.udp.isValid()) {                
                 if (hdr.netlock.act == ACQUIRE) {
                     // If lock is unset, set it and prepare response back to host
-                    if (lock_status == UNSET) {
-                        lock_status = SET;
+                    bit<1> current_status;
+                    lock_statuses.read(current_status, (bit<32>)0);
+                    if (current_status == UNSET) {
+                        lock_statuses.write((bit<32>)0, SET);
                         remove_netlock();
                         swap_ip();
                         swap_udp();
@@ -144,7 +147,7 @@ control MyIngress(inout headers hdr,
                 else {
                     // If queue is empty, unset the lock
                     if (head == tail) {
-                        lock_status = UNSET;
+                        lock_statuses.write((bit<32>)0, UNSET);
                     }
                     // Otherwise, send a message to next host in queue, granting the lock
                     else {

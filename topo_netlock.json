@@ -1,0 +1,29 @@
+{
+    "p4_src": "p4src/netlock.p4",
+    "cli": true,
+    "pcap_dump": true,
+    "enable_log": true,
+      "exec_scripts": [
+      {
+        "cmd": "python controller_netlock.py",
+        "reboot_run": true
+      }
+    ],
+    "topology": {
+      "assignment_strategy": "l3",
+      "links": [["h1", "t1", {"bw": 1}], ["h2", "t1", {"bw": 1}], ["h3", "t1", {"bw": 1}]],
+      "hosts": {
+          "h1": {
+          },
+          "h2": {
+          },
+          "h3": {
+          }
+      },
+      "switches": {
+          "t1": {
+          }
+      }
+    }
+  }
+  

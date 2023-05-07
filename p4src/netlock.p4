@@ -50,7 +50,7 @@ control MyIngress(inout headers hdr,
     }
 
     action drop() {
-        mark_to_drop();
+        mark_to_drop(standard_metadata);
     }
 
     action push_queue() {
@@ -63,7 +63,7 @@ control MyIngress(inout headers hdr,
         // zero out current head and then increment head
         lock_queue_ip.write(head, (bit<32>)0);
         lock_queue_udp.write(head, (bit<16>)0);
-        ++head;
+        head = (head + 1) % QueueSize;
     }
 
     action remove_netlock() {
@@ -79,9 +79,9 @@ control MyIngress(inout headers hdr,
 
     action swap_udp() {
         bit<16> tmp;
-        tmp = hdr.udp.srcAddr;
-        hdr.udp.srcAddr = hdr.udp.dstAddr;
-        hdr.udp.dstAddr = hdr.udp.srcAddr;
+        tmp = hdr.udp.srcPort;
+        hdr.udp.srcPort = hdr.udp.dstPort;
+        hdr.udp.dstPort = hdr.udp.srcPort;
     }
 
     action set_next_ip() {
@@ -127,7 +127,7 @@ control MyIngress(inout headers hdr,
         if (hdr.ipv4.isValid()) {
 
             if (hdr.netlock.isValid() && hdr.udp.isValid()) {                
-                if (hdr.netlock.action == ACQUIRE) {
+                if (hdr.netlock.act == ACQUIRE) {
                     // If lock is unset, set it and prepare response back to host
                     if (lock_status == UNSET) {
                         lock_status = SET;
@@ -162,3 +162,55 @@ control MyIngress(inout headers hdr,
     }
 
 }
+
+
+/*************************************************************************
+****************  E G R E S S   P R O C E S S I N G   *******************
+*************************************************************************/
+
+control MyEgress(inout headers hdr,
+                 inout metadata meta,
+                 inout standard_metadata_t standard_metadata) {
+    apply {
+
+    }
+}
+
+/*************************************************************************
+*************   C H E C K S U M    C O M P U T A T I O N   **************
+*************************************************************************/
+
+control MyComputeChecksum(inout headers hdr, inout metadata meta) {
+     apply {
+	update_checksum(
+	    hdr.ipv4.isValid(),
+            { hdr.ipv4.version,
+	          hdr.ipv4.ihl,
+              hdr.ipv4.dscp,
+              hdr.ipv4.ecn,
+              hdr.ipv4.totalLen,
+              hdr.ipv4.identification,
+              hdr.ipv4.flags,
+              hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl,
+              hdr.ipv4.protocol,
+              hdr.ipv4.srcAddr,
+              hdr.ipv4.dstAddr },
+              hdr.ipv4.hdrChecksum,
+              HashAlgorithm.csum16);
+    }
+}
+
+/*************************************************************************
+***********************  S W I T C H  *******************************
+*************************************************************************/
+
+//switch architecture
+V1Switch(
+MyParser(),
+MyVerifyChecksum(),
+MyIngress(),
+MyEgress(),
+MyComputeChecksum(),
+MyDeparser()
+) main;

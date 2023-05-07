@@ -7,8 +7,8 @@ const bit<16> TYPE_NETLOCK = 0x7777;
 const bit<16> PORT_NETLOCK = 7777;
 
 // Netlock actions
-const bit<1> ACQUIRE = 0;
-const bit<1> RELEASE = 1;
+const bit<2> ACQUIRE = 0;
+const bit<2> RELEASE = 1;
 
 // Lock statuses
 const bit<1> SET = 0;
@@ -28,8 +28,8 @@ header ethernet_t {
 }
 
 header netlock_t {
-    bit<16> lock_id;
-    bit<1> action;
+    bit<14> lock_id;
+    bit<2> act;
 }
 
 header ipv4_t {
@@ -84,5 +84,6 @@ struct headers {
     netlock_t    netlock;
     ipv4_t       ipv4;
     udp_t        udp;
+    tcp_t        tcp;
 }
 

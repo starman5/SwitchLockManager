@@ -17,14 +17,14 @@ parser MyParser(packet_in packet,
 
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType){
-            TYPE_NETLOCK: parse_netlock
+            TYPE_NETLOCK: parse_netlock;
             TYPE_IPV4: parse_ipv4;
             default: accept;
         }
     }
 
     state parse_netlock {
-        packet.extract(hdr.netlock)
+        packet.extract(hdr.netlock);
         transition parse_ipv4;
     }
 
@@ -59,7 +59,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.netlock);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.udp)
+        packet.emit(hdr.udp);
         packet.emit(hdr.tcp);
     }
 }

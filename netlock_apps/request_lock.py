@@ -53,8 +53,8 @@ def main():
     addr = socket.gethostbyname(sys.argv[1])
     iface = get_if()
     print("Hello")
-    pkt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff') / LockHeader(lock_id=0, action=ACQUIRE)
-    pkt = pkt /IP(dst=addr) / UDP(dport=7777, sport=random.randint(2000,65535))
+    pkt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff', type=0x7777) / LockHeader(lock_id=0, action=ACQUIRE)
+    pkt = pkt / IP(dst=addr) / UDP(dport=7777, sport=random.randint(2000,65535))
     print(pkt)
     sendp(pkt, iface=iface, verbose=False)
 

@@ -25,7 +25,10 @@ parser MyParser(packet_in packet,
 
     state parse_netlock {
         packet.extract(hdr.netlock);
-        transition parse_ipv4;
+        transition select(hdr.netlock.lock_id){
+            0: parse_ipv4;
+            default: accept;
+        }       
     }
 
     state parse_ipv4 {

@@ -28,7 +28,7 @@ control MyIngress(inout headers hdr,
     register<bit<32>>(QueueSize) lock_queue_ip;
     register<bit<16>>(QueueSize) lock_queue_udp;
    
-    bit<1> lock_status;
+    bit<1> lock_status = UNSET;
     bit<32> head = 0;   // Next up in the queue (first taken slot)
     bit<32> tail = 0;   // Next available slot in the queue
 

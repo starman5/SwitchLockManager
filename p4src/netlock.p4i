@@ -986,7 +986,10 @@ parser MyParser(packet_in packet,
 
     state parse_netlock {
         packet.extract(hdr.netlock);
-        transition parse_ipv4;
+        transition select(hdr.netlock.lock_id){
+            0: parse_ipv4;
+            default: accept;
+        }
     }
 
     state parse_ipv4 {
@@ -1048,7 +1051,7 @@ control MyIngress(inout headers hdr,
     register<bit<32>>(QueueSize) lock_queue_ip;
     register<bit<16>>(QueueSize) lock_queue_udp;
 
-    bit<1> lock_status;
+    bit<1> lock_status = UNSET;
     bit<32> head = 0; // Next up in the queue (first taken slot)
     bit<32> tail = 0; // Next available slot in the queue
 
